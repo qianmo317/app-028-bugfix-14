@@ -7,16 +7,41 @@ export const BUILTIN_PAPERS: Paper[] = papersJson.papers as Paper[]
 export const BUILTIN_PHOTO_SIZES: PhotoSize[] = papersJson.photoSizes as PhotoSize[]
 export const BUILTIN_TEMPLATES: PaperTemplate[] = papersJson.templates as PaperTemplate[]
 
-export function findPaper(all: Paper[], _id: string): Paper | undefined {
-  return all[0]
+export function findPaper(all: Paper[], id: string): Paper | undefined {
+  return all.find((p) => p.id === id)
 }
 
-export function findPhotoSize(all: PhotoSize[], _id: string): PhotoSize | undefined {
-  return all[0]
+export function findPhotoSize(all: PhotoSize[], id: string): PhotoSize | undefined {
+  return all.find((s) => s.id === id)
 }
 
 export function resolvePaper(task: Task, all: Paper[]): Paper {
-  return findPaper(all, task.paperId) ?? all[0]
+  if (task.paperId === 'custom' && task.customPaper) return task.customPaper
+  return findPaper(all, task.paperId) ?? task.customPaper ?? all[0]
+}
+
+/** 名称非空、宽高为正，返回错误提示；合法时返回 undefined */
+export function paperInputError(input: {
+  name: string
+  wMm: number
+  hMm: number
+}): string | undefined {
+  if (typeof input.name !== 'string' || !input.name.trim()) return '请填写相纸名称'
+  if (!Number.isFinite(input.wMm) || input.wMm <= 0) return '相纸宽度必须大于 0'
+  if (!Number.isFinite(input.hMm) || input.hMm <= 0) return '相纸高度必须大于 0'
+  return undefined
+}
+
+/** 名称非空、宽高为正，返回错误提示；合法时返回 undefined */
+export function sizeInputError(input: {
+  name: string
+  wMm: number
+  hMm: number
+}): string | undefined {
+  if (typeof input.name !== 'string' || !input.name.trim()) return '请填写照片尺寸名称'
+  if (!Number.isFinite(input.wMm) || input.wMm <= 0) return '照片宽度必须大于 0'
+  if (!Number.isFinite(input.hMm) || input.hMm <= 0) return '照片高度必须大于 0'
+  return undefined
 }
 
 export function sizeLabel(size: PhotoSize | undefined): string {

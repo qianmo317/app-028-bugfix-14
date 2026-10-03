@@ -19,7 +19,7 @@ import {
   tasks,
   templates,
 } from '../store'
-import { findPhotoSize, newId } from '../logic/library'
+import { findPhotoSize, newId, paperInputError, sizeInputError } from '../logic/library'
 import { formatCents, formatPercent } from '../logic/units'
 import type { Item, Paper, PhotoRef, Task } from '../logic/types'
 
@@ -167,12 +167,13 @@ function useLeftover(id: string) {
 }
 
 function addSize() {
-  if (!newSize.name.trim()) {
-    error.value = '请填写自定义尺寸名称'
-    return
-  }
-  if (newSize.wMm <= 0 || newSize.hMm <= 0) {
-    error.value = '自定义尺寸必须大于 0'
+  const err = sizeInputError({
+    name: newSize.name,
+    wMm: newSize.wMm,
+    hMm: newSize.hMm,
+  })
+  if (err) {
+    error.value = err
     return
   }
   const s = addCustomSize({
@@ -182,6 +183,9 @@ function addSize() {
     rotateByDefault: false,
   })
   newSize.name = ''
+  newSize.wMm = 50
+  newSize.hMm = 70
+  error.value = ''
   addItem(s.id)
 }
 
@@ -195,6 +199,27 @@ function submit() {
   if (draft.items.some((i) => i.qty <= 0)) {
     error.value = '照片数量必须大于 0'
     return
+  }
+  if (draft.paperId === 'custom') {
+    const cp = draft.customPaper
+    const paperErr = paperInputError(cp)
+    if (paperErr) {
+      error.value = paperErr
+      return
+    }
+    if (!Number.isFinite(cp.marginMm) || cp.marginMm < 0) {
+      error.value = '纸边留白不能为负数'
+      return
+    }
+    if (!Number.isFinite(cp.priceCents) || cp.priceCents < 0) {
+      error.value = '相纸单价不能为负数'
+      return
+    }
+    const inset = cp.marginMm + draft.safeEdgeMm
+    if (cp.wMm - 2 * inset <= 0 || cp.hMm - 2 * inset <= 0) {
+      error.value = '纸边留白 + 安全边已超过自定义相纸尺寸，无法排样'
+      return
+    }
   }
   const task: Task = createTask({
     name: draft.name || undefined,

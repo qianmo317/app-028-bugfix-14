@@ -7,7 +7,9 @@ import {
   groupsFromTask,
   newId,
   optionsFromTask,
+  paperInputError,
   resolvePaper,
+  sizeInputError,
 } from './logic/library'
 import { pack, sheetsFromPlacements } from './logic/packer'
 import { loadJSON, saveJSON } from './logic/storage'
@@ -39,8 +41,19 @@ export const DEFAULT_SETTINGS: Settings = {
   exportDpi: 300,
 }
 
-export const customPapers = ref<Paper[]>(loadJSON<Paper[]>(KEY.customPapers, []))
-export const customSizes = ref<PhotoSize[]>(loadJSON<PhotoSize[]>(KEY.customSizes, []))
+/** 旧版本可能写入过空名称/零尺寸条目，加载时统一过滤掉 */
+function loadCustomPapers(): Paper[] {
+  return loadJSON<Paper[]>(KEY.customPapers, [])
+    .filter((p) => p && !paperInputError(p) && !BUILTIN_PAPERS.some((b) => b.id === p.id))
+}
+
+function loadCustomSizes(): PhotoSize[] {
+  return loadJSON<PhotoSize[]>(KEY.customSizes, [])
+    .filter((s) => s && !sizeInputError(s) && !BUILTIN_PHOTO_SIZES.some((b) => b.id === s.id))
+}
+
+export const customPapers = ref<Paper[]>(loadCustomPapers())
+export const customSizes = ref<PhotoSize[]>(loadCustomSizes())
 export const settings = ref<Settings>({ ...DEFAULT_SETTINGS, ...loadJSON(KEY.settings, {}) })
 export const tasks = ref<Task[]>(loadJSON<Task[]>(KEY.tasks, []))
 export const leftovers = ref<Leftover[]>(loadJSON<Leftover[]>(KEY.leftovers, []))
@@ -205,22 +218,32 @@ export function resetManual(task: Task): void {
 }
 
 export function addCustomPaper(p: Omit<Paper, 'id'>): Paper {
-  const paper: Paper = { ...p, id: newId('paper') }
+  const trimmed = { ...p, name: p.name.trim() }
+  const err = paperInputError(trimmed)
+  if (err) throw new Error(err)
+  const paper: Paper = { ...trimmed, id: newId('paper') }
   customPapers.value = [...customPapers.value, paper]
   return paper
 }
 
 export function addCustomSize(s: Omit<PhotoSize, 'id'>): PhotoSize {
-  const size: PhotoSize = { ...s, id: newId('size') }
+  const trimmed = { ...s, name: s.name.trim() }
+  const err = sizeInputError(trimmed)
+  if (err) throw new Error(err)
+  const size: PhotoSize = { ...trimmed, id: newId('size') }
   customSizes.value = [...customSizes.value, size]
   return size
 }
 
 export function removeCustomPaper(id: string): void {
+  // 内置相纸不允许删除
+  if (BUILTIN_PAPERS.some((p) => p.id === id)) return
   customPapers.value = customPapers.value.filter((p) => p.id !== id)
 }
 
 export function removeCustomSize(id: string): void {
+  // 内置照片尺寸不允许删除
+  if (BUILTIN_PHOTO_SIZES.some((s) => s.id === id)) return
   customSizes.value = customSizes.value.filter((s) => s.id !== id)
 }
 

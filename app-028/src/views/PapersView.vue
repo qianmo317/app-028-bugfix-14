@@ -11,7 +11,7 @@ import {
   removeLeftover,
   templates,
 } from '../store'
-import { BUILTIN_PAPERS, BUILTIN_PHOTO_SIZES } from '../logic/library'
+import { BUILTIN_PAPERS, BUILTIN_PHOTO_SIZES, paperInputError, sizeInputError } from '../logic/library'
 import { formatCents, inchToMm } from '../logic/units'
 
 const error = ref('')
@@ -32,16 +32,30 @@ const builtinPaperIds = new Set(BUILTIN_PAPERS.map((p) => p.id))
 const builtinSizeIds = new Set(BUILTIN_PHOTO_SIZES.map((s) => s.id))
 
 function addPaper() {
+  msg.value = ''
+  const input = { name: paperForm.name.trim(), wMm: paperForm.wMm, hMm: paperForm.hMm }
+  const err = paperInputError(input)
+  if (err) {
+    error.value = err
+    return
+  }
+  addCustomPaper({ ...paperForm, name: input.name })
   error.value = ''
-  addCustomPaper({ ...paperForm, name: paperForm.name.trim() })
-  msg.value = `已新增相纸「${paperForm.name}」`
+  msg.value = `已新增相纸「${input.name}」`
   paperForm.name = ''
 }
 
 function addSize() {
+  msg.value = ''
+  const input = { name: sizeForm.name.trim(), wMm: sizeForm.wMm, hMm: sizeForm.hMm }
+  const err = sizeInputError(input)
+  if (err) {
+    error.value = err
+    return
+  }
+  addCustomSize({ ...sizeForm, name: input.name })
   error.value = ''
-  addCustomSize({ ...sizeForm, name: sizeForm.name.trim() })
-  msg.value = `已新增照片尺寸「${sizeForm.name}」`
+  msg.value = `已新增照片尺寸「${input.name}」`
   sizeForm.name = ''
 }
 
@@ -86,12 +100,18 @@ function inchHint(wMm: number, hMm: number): string {
               <td class="num">{{ p.marginMm }}mm</td>
               <td class="num">{{ formatCents(p.priceCents) }}</td>
               <td>
-                <span class="badge" :class="builtinPaperIds.has(p.id) ? 'brand' : ''">
-                  {{ builtinPaperIds.has(p.id) ? '自定义' : '内置' }}
+                <span class="badge" :class="builtinPaperIds.has(p.id) ? '' : 'brand'">
+                  {{ builtinPaperIds.has(p.id) ? '内置' : '自定义' }}
                 </span>
               </td>
               <td>
-                <button class="btn small danger" @click="removeCustomPaper(p.id)">删除</button>
+                <button
+                  v-if="!builtinPaperIds.has(p.id)"
+                  class="btn small danger"
+                  @click="removeCustomPaper(p.id)"
+                >
+                  删除
+                </button>
               </td>
             </tr>
           </tbody>
