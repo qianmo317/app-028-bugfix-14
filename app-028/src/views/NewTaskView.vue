@@ -19,7 +19,7 @@ import {
   tasks,
   templates,
 } from '../store'
-import { findPhotoSize, newId } from '../logic/library'
+import { findPhotoSize, newId, validatePaperInput } from '../logic/library'
 import { formatCents, formatPercent } from '../logic/units'
 import type { Item, Paper, PhotoRef, Task } from '../logic/types'
 
@@ -195,6 +195,13 @@ function submit() {
   if (draft.items.some((i) => i.qty <= 0)) {
     error.value = '照片数量必须大于 0'
     return
+  }
+  if (draft.paperId === 'custom') {
+    const reason = validatePaperInput(draft.customPaper)
+    if (reason) {
+      error.value = reason
+      return
+    }
   }
   const task: Task = createTask({
     name: draft.name || undefined,

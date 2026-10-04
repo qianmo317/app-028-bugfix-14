@@ -7,16 +7,17 @@ export const BUILTIN_PAPERS: Paper[] = papersJson.papers as Paper[]
 export const BUILTIN_PHOTO_SIZES: PhotoSize[] = papersJson.photoSizes as PhotoSize[]
 export const BUILTIN_TEMPLATES: PaperTemplate[] = papersJson.templates as PaperTemplate[]
 
-export function findPaper(all: Paper[], _id: string): Paper | undefined {
-  return all[0]
+export function findPaper(all: Paper[], id: string): Paper | undefined {
+  return all.find((p) => p.id === id)
 }
 
-export function findPhotoSize(all: PhotoSize[], _id: string): PhotoSize | undefined {
-  return all[0]
+export function findPhotoSize(all: PhotoSize[], id: string): PhotoSize | undefined {
+  return all.find((s) => s.id === id)
 }
 
 export function resolvePaper(task: Task, all: Paper[]): Paper {
-  return findPaper(all, task.paperId) ?? all[0]
+  if (task.paperId === 'custom' && task.customPaper) return task.customPaper
+  return findPaper(all, task.paperId) ?? task.customPaper ?? all[0]
 }
 
 export function sizeLabel(size: PhotoSize | undefined): string {
@@ -69,4 +70,45 @@ export function newId(prefix = 'id'): string {
       ? crypto.randomUUID().slice(0, 8)
       : Math.random().toString(36).slice(2, 10)
   return `${prefix}-${rnd}`
+}
+
+function isPositiveFinite(v: number): boolean {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0
+}
+
+/** 校验自定义相纸输入；合法返回 undefined，否则返回错误提示 */
+export function validatePaperInput(p: {
+  name: string
+  wMm: number
+  hMm: number
+  marginMm?: number
+  priceCents?: number
+}): string | undefined {
+  if (!p.name || !p.name.trim()) return '相纸名称不能为空'
+  if (!isPositiveFinite(p.wMm) || !isPositiveFinite(p.hMm)) {
+    return '相纸宽高必须为大于 0 的数字'
+  }
+  if (p.marginMm !== undefined && (!Number.isFinite(p.marginMm) || p.marginMm < 0)) {
+    return '纸边留白不能为负数'
+  }
+  if (2 * (p.marginMm ?? 0) >= p.wMm || 2 * (p.marginMm ?? 0) >= p.hMm) {
+    return '纸边留白过大，已超过相纸尺寸'
+  }
+  if (p.priceCents !== undefined && (!Number.isFinite(p.priceCents) || p.priceCents < 0)) {
+    return '单价不能为负数'
+  }
+  return undefined
+}
+
+/** 校验自定义照片尺寸输入；合法返回 undefined，否则返回错误提示 */
+export function validateSizeInput(s: {
+  name: string
+  wMm: number
+  hMm: number
+}): string | undefined {
+  if (!s.name || !s.name.trim()) return '照片尺寸名称不能为空'
+  if (!isPositiveFinite(s.wMm) || !isPositiveFinite(s.hMm)) {
+    return '照片宽高必须为大于 0 的数字'
+  }
+  return undefined
 }

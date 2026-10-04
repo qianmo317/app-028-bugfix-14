@@ -8,6 +8,8 @@ import {
   newId,
   optionsFromTask,
   resolvePaper,
+  validatePaperInput,
+  validateSizeInput,
 } from './logic/library'
 import { pack, sheetsFromPlacements } from './logic/packer'
 import { loadJSON, saveJSON } from './logic/storage'
@@ -205,22 +207,28 @@ export function resetManual(task: Task): void {
 }
 
 export function addCustomPaper(p: Omit<Paper, 'id'>): Paper {
-  const paper: Paper = { ...p, id: newId('paper') }
+  const reason = validatePaperInput(p)
+  if (reason) throw new Error(reason)
+  const paper: Paper = { ...p, id: newId('paper'), name: p.name.trim() }
   customPapers.value = [...customPapers.value, paper]
   return paper
 }
 
 export function addCustomSize(s: Omit<PhotoSize, 'id'>): PhotoSize {
-  const size: PhotoSize = { ...s, id: newId('size') }
+  const reason = validateSizeInput(s)
+  if (reason) throw new Error(reason)
+  const size: PhotoSize = { ...s, id: newId('size'), name: s.name.trim() }
   customSizes.value = [...customSizes.value, size]
   return size
 }
 
 export function removeCustomPaper(id: string): void {
+  if (BUILTIN_PAPERS.some((p) => p.id === id)) return
   customPapers.value = customPapers.value.filter((p) => p.id !== id)
 }
 
 export function removeCustomSize(id: string): void {
+  if (BUILTIN_PHOTO_SIZES.some((s) => s.id === id)) return
   customSizes.value = customSizes.value.filter((s) => s.id !== id)
 }
 

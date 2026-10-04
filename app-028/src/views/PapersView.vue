@@ -33,16 +33,26 @@ const builtinSizeIds = new Set(BUILTIN_PHOTO_SIZES.map((s) => s.id))
 
 function addPaper() {
   error.value = ''
-  addCustomPaper({ ...paperForm, name: paperForm.name.trim() })
-  msg.value = `已新增相纸「${paperForm.name}」`
-  paperForm.name = ''
+  msg.value = ''
+  try {
+    const created = addCustomPaper({ ...paperForm, name: paperForm.name.trim() })
+    msg.value = `已新增相纸「${created.name}」`
+    paperForm.name = ''
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '新增相纸失败'
+  }
 }
 
 function addSize() {
   error.value = ''
-  addCustomSize({ ...sizeForm, name: sizeForm.name.trim() })
-  msg.value = `已新增照片尺寸「${sizeForm.name}」`
-  sizeForm.name = ''
+  msg.value = ''
+  try {
+    const created = addCustomSize({ ...sizeForm, name: sizeForm.name.trim() })
+    msg.value = `已新增照片尺寸「${created.name}」`
+    sizeForm.name = ''
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '新增照片尺寸失败'
+  }
 }
 
 function inchHint(wMm: number, hMm: number): string {
@@ -87,11 +97,17 @@ function inchHint(wMm: number, hMm: number): string {
               <td class="num">{{ formatCents(p.priceCents) }}</td>
               <td>
                 <span class="badge" :class="builtinPaperIds.has(p.id) ? 'brand' : ''">
-                  {{ builtinPaperIds.has(p.id) ? '自定义' : '内置' }}
+                  {{ builtinPaperIds.has(p.id) ? '内置' : '自定义' }}
                 </span>
               </td>
               <td>
-                <button class="btn small danger" @click="removeCustomPaper(p.id)">删除</button>
+                <button
+                  v-if="!builtinPaperIds.has(p.id)"
+                  class="btn small danger"
+                  @click="removeCustomPaper(p.id)"
+                >
+                  删除
+                </button>
               </td>
             </tr>
           </tbody>
@@ -151,7 +167,7 @@ function inchHint(wMm: number, hMm: number): string {
               <td class="num">{{ inchHint(s.wMm, s.hMm) }}</td>
               <td>{{ s.rotateByDefault ? '允许' : '不允许' }}</td>
               <td>
-                <span class="badge" :class="builtinSizeIds.has(s.id) ? '' : 'brand'">
+                <span class="badge" :class="builtinSizeIds.has(s.id) ? 'brand' : ''">
                   {{ builtinSizeIds.has(s.id) ? '内置' : '自定义' }}
                 </span>
               </td>
